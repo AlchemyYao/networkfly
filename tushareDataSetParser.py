@@ -1,16 +1,27 @@
-from operator import index
 import numpy as np
 import pandas as pd
 import tushare as ts
 from pathlib2 import Path
+import time
 
 class TushareData():
     def __init__(self, tushare_token) -> None:
         self.token = tushare_token
         self.code_list = []
-        self.TushareDataParser()
+        self.tushareDataParser()
 
-    def TushareDataParser(self):
+    def stockBasicParser(self, ts_code):
+        ts.set_token(self.token)
+        pro = ts.pro_api()
+        for _ in range(60):
+            try:
+                df= ts.pro_bar(ts_code= ts_code, adj= "qfq")
+            except:
+                time.sleep(1)
+            else:
+                return df
+
+    def tushareDataParser(self):
         ts.set_token(self.token)
         pro = ts.pro_api()
         df_stock_basic = pro.stock_basic(exchange='', list_status='L')
@@ -18,7 +29,7 @@ class TushareData():
         df_stock_basic.to_csv(path_or_buf= stock_basic_path, sep= ",", index_label= "idx")
         self.code_list = df_stock_basic["ts_code"].to_list()
         for item in self.code_list:
-            df= ts.pro_bar(ts_code= item, adj= "qfq")
+            df = self.stockBasicParser(ts_code= item)
             stock_code_path= Path.joinpath(Path(__file__).parent, "tushareDataSet", item.replace(".", "") + ".csv")
             df.to_csv(path_or_buf= stock_code_path, sep= ",", index_label= "idx")
 
